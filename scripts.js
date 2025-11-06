@@ -1,0 +1,97 @@
+/* scripts.js - separate file, no inline JS */
+
+/* Simple nav toggle for small screens */
+(function(){
+  const navToggle = document.getElementById('navToggle');
+  const nav = document.querySelector('.nav');
+  navToggle && navToggle.addEventListener('click', () => {
+    if (!nav) return;
+    nav.style.display = nav.style.display === 'flex' ? '' : 'flex';
+    nav.style.flexDirection = 'column';
+    nav.style.background = 'rgba(255,255,255,0.95)';
+    nav.style.padding = '0.75rem';
+    nav.style.borderRadius = '10px';
+  });
+})();
+
+/* Animate counters and progress bars when in view */
+(function(){
+  const numbers = document.querySelectorAll('.stat-number');
+  const progressBars = document.querySelectorAll('.progress span');
+  const yearEl = document.getElementById('year');
+
+  // set footer year
+  if(yearEl) yearEl.textContent = new Date().getFullYear();
+
+  const observerOptions = { root: null, rootMargin: '0px', threshold: 0.25 };
+
+  function animateNumber(el, target) {
+    const isLarge = target > 1000;
+    let start = 0;
+    const duration = 1200;
+    const startTime = performance.now();
+
+    function step(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const val = Math.floor(progress * (target - start) + start);
+      el.textContent = isLarge ? formatNumber(Math.floor(val)) : String(val);
+      if (progress < 1) requestAnimationFrame(step);
+      else el.textContent = isLarge ? formatNumber(target) : String(target);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function formatNumber(n){ 
+    if(n >= 1000) return (n/1000).toFixed(n%1000 === 0 ? 0 : 1) + 'k';
+    return String(n);
+  }
+
+  function onIntersect(entries, obs) {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // numbers
+        numbers.forEach(n => {
+          if (!n.dataset.animated) {
+            const target = parseInt(n.getAttribute('data-target'), 10) || 0;
+            animateNumber(n, target);
+            n.dataset.animated = 'true';
+          }
+        });
+        // progress bars
+        progressBars.forEach(span => {
+          const parent = span.closest('.progress');
+          const pct = parseInt(parent?.getAttribute('data-progress') || 0, 10);
+          span.style.width = Math.min(Math.max(pct, 0), 100) + '%';
+        });
+        // once animated, stop observing
+        obs.disconnect();
+      }
+    });
+  }
+
+  const observer = new IntersectionObserver(onIntersect, observerOptions);
+  const target = document.querySelector('#impact');
+  if (target) observer.observe(target);
+
+  // simple contact form feedback (no backend)
+  const form = document.getElementById('contactForm');
+  const msg = document.getElementById('formMsg');
+  const submitBtn = document.getElementById('formSubmit');
+  if (form && submitBtn) {
+    submitBtn.addEventListener('click', () => {
+      const name = form.querySelector('input[name="name"]').value.trim();
+      const email = form.querySelector('input[name="email"]').value.trim();
+      const message = form.querySelector('textarea[name="message"]').value.trim();
+      if (!name || !email || !message) {
+        if (msg) msg.textContent = 'Please complete all fields.';
+        return;
+      }
+      // show a friendly success message (simulate send)
+      if (msg) {
+        msg.textContent = 'Thanks! Your message has been noted — we will follow up soon.';
+        form.reset();
+      }
+    });
+  }
+})();
